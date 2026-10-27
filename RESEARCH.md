@@ -2,6 +2,16 @@
 
 Research for [BRIEF.md](BRIEF.md), 2026-10-27. Nothing is built yet, and no other repo was changed.
 
+## Decisions (2026-10-27)
+
+- **No update server.** GitHub Releases is the update source. The Oracle box is orrery's, and stays that way.
+- **orrery is out of scope.** It updates separately.
+- **`main` is the dev branch; a `vX.Y.Z` tag is a stable release** (`vX.Y.Z-rc.N` is a candidate). This repo holds
+  the shared release workflow and `scripts/release.sh`; see [README.md](README.md).
+- **Correction:** since this was first written, burrow's `main` gained `burrow-update`. It installs and updates from
+  the rolling `build-main` release, checks the SHA-256, and only notifies from its timer. The burrow rows below
+  predate that. Its next step is a stable channel: follow `releases/latest` instead of `build-main`.
+
 ## Short version
 
 **Don't build a central update server yet.** Most of these programs already update through a channel they're built

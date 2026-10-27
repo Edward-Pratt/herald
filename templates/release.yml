@@ -1,0 +1,35 @@
+# Copy to <project>/.github/workflows/release.yml. A vX.Y.Z tag (made by update-server's scripts/release.sh) becomes a
+# GitHub Release; vX.Y.Z-rc.N becomes a pre-release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  # Delete this job, and the `artifact` input below, for a project that ships its source as it is (a shell script, a
+  # plugin): the release then carries a source archive of the tag.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # Build only from this commit: no cache shared with other runs.
+      - name: Build
+        run: |
+          mkdir -p out
+          echo "replace with the project's build, writing what users download into out/" > out/README
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-files
+          path: out/
+          if-no-files-found: error
+
+  release:
+    needs: build
+    uses: Edward-Pratt/update-server/.github/workflows/release.yml@v1
+    with:
+      artifact: release-files
+    permissions:
+      contents: write
