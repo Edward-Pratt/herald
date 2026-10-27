@@ -19,8 +19,10 @@ From a clean `main` of the project:
 ~/ClaudeCode/update-server/scripts/release.sh patch   # or minor, major, 1.4.0; add --rc for a candidate
 ```
 
-It picks the version, runs the project's `.github/bump-version <version>` if there is one (to update `Cargo.toml`,
-`plugin.toml` and so on), commits, tags, and asks before pushing.
+It picks the version and runs the project's `.github/bump-version <version>` if there is one (to update `Cargo.toml`,
+`plugin.toml` and so on). If that changes anything, it opens a `release/vX.Y.Z` pull request with the change, because
+default branches only take changes through pull requests. Merge it once CI passes, pull, and run the same command again:
+with nothing left to change, it tags and pushes the tag. It asks before pushing anything.
 
 ## Adding a project
 

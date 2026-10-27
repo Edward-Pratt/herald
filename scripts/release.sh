@@ -8,12 +8,14 @@
 #   release.sh minor --rc            a release candidate, v1.5.0-rc.1, then -rc.2 on the next run
 #
 # Run it from a clean default branch that matches origin. If the project has an executable .github/bump-version, it's
-# run with the version (no "v") to write it into the project's own files (Cargo.toml, plugin.toml...), and the result
-# is committed as "Release vX.Y.Z". Nothing is pushed until you say yes.
+# run with the version (no "v") to write it into the project's own files (Cargo.toml, plugin.toml...). When that
+# changes anything, the change goes to a release/vX.Y.Z pull request, since the default branch may only take changes
+# through one; once it's merged, pull and run the same command again to tag it. Nothing is pushed until you say yes.
 set -euo pipefail
 
 die() { echo "release.sh: $*" >&2; exit 1; }
 usage() { sed -n '6,8s/^# //p' "$0" >&2; exit 2; }
+ask() { local answer; read -r -p "$1 [y/N] " answer; [[ $answer == [yY]* ]]; }
 
 [[ $# -ge 1 && $# -le 2 ]] || usage
 bump=$1 rc=
@@ -54,23 +56,37 @@ if [[ -n $rc ]]; then
 fi
 tag=v$version
 
-if [[ -x .github/bump-version ]]; then
-  .github/bump-version "$version"
-  if [[ -n $(git status --porcelain) ]]; then
-    git add --all && git commit --quiet -m "Release $tag"
+[[ ! -x .github/bump-version ]] || .github/bump-version "$version"
+if [[ -n $(git status --porcelain) ]]; then
+  # The version has to reach the default branch first, through a pull request, so its CI runs before anything is
+  # tagged. Running this again once it's merged finds nothing to change and tags.
+  pr=release/$tag
+  git switch --quiet -c "$pr"
+  git add --all
+  git commit --quiet -m "Release $tag" -m "Sets the version to $version. Once this is merged, the release is tagged on $branch."
+  git switch --quiet "$branch"
+  echo
+  git show --stat --format='%s' "$pr" | head -n 20
+  echo
+  if ask "Push $pr and open its pull request?"; then
+    git push --quiet -u origin "$pr"
+    gh pr create --base "$branch" --head "$pr" --title "Release $tag" \
+      --body "Sets the version to $version. Once this is merged, pull $branch and run \`release.sh $*\` again to tag it."
+    echo "Merge it, then pull $branch and run release.sh $* again to tag $tag."
+  else
+    echo "Not pushed. To undo: git branch -D $pr"
   fi
+  exit 0
 fi
-git tag -a "$tag" -m "$tag"
 
+git tag -a "$tag" -m "$tag"
 echo
 echo "Tagged $tag (previous stable release: v$latest):"
 git log --oneline "$(git rev-parse -q --verify "refs/tags/v$latest" >/dev/null && echo "v$latest..")$tag" | head -n 30
 echo
-read -r -p "Push $branch and $tag to origin? [y/N] " answer
-if [[ $answer == [yY]* ]]; then
-  # Atomic, so the tag never lands without the commit it names.
-  git push --quiet --atomic origin "$branch" "$tag"
+if ask "Push $tag to origin?"; then
+  git push --quiet origin "$tag"
   echo "Pushed. The release workflow publishes $tag."
 else
-  echo "Not pushed. To undo: git tag -d $tag$(git log -1 --format=%s | grep -qx "Release $tag" && echo ' && git reset --hard HEAD~1')"
+  echo "Not pushed. To undo: git tag -d $tag"
 fi
