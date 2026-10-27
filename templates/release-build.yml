@@ -1,0 +1,33 @@
+# Made by `herald adopt build`. A vX.Y.Z tag (from `herald release`) becomes a GitHub release of what the build job
+# writes to out/; a vX.Y.Z-rc.N tag becomes a pre-release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Build only from this tag: no cache shared with other runs. Write files, not folders, to out/ (tar a folder up).
+      - name: Build
+        run: |
+          echo "Replace this step with the project's build, writing what users download into out/." >&2
+          exit 1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-files
+          path: out/
+          if-no-files-found: error
+
+  release:
+    needs: build
+    uses: Edward-Pratt/herald/.github/workflows/release.yml@v1
+    with:
+      artifact: release-files
+    permissions:
+      contents: write

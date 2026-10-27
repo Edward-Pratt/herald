@@ -1,6 +1,6 @@
 # Turns a vX.Y.Z tag into a GitHub Release: checks the tag, collects the files to publish, writes SHA256SUMS and the
 # notes, and creates the release. vX.Y.Z-rc.N tags become pre-releases, which `releases/latest` (the stable channel)
-# skips. Called from a project's own workflow, on its tag push; see templates/release.yml.
+# skips. Called from a project's own workflow, on its tag push; see templates/ (or run `herald adopt`).
 #
 # The caller builds whatever needs building and uploads it as one artifact, named in `artifact`. With no artifact,
 # the release ships a source archive of the tag (<name>-<version>.tar.gz), for projects that install from source.
@@ -39,7 +39,7 @@ jobs:
           echo "prerelease=$([[ -n ${BASH_REMATCH[2]} ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       # Full history and tags, for the notes. The write token stays out of the checkout.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -50,7 +50,7 @@ jobs:
           echo "FILES=$RUNNER_TEMP/release-files" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/release-files"
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: inputs.artifact != ''
         with:
           name: ${{ inputs.artifact }}

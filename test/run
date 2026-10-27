@@ -1,0 +1,10 @@
+#!/bin/bash
+# Runs every test. CI runs this too.
+set -uo pipefail
+cd "$(dirname "$0")" || exit
+status=0
+for t in release adopt workflow; do
+  echo "== $t"
+  bash "$t.sh" || status=1
+done
+exit $status

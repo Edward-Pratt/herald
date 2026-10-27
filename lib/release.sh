@@ -3,9 +3,9 @@
 # master in older repos) is the dev branch; a release is a vX.Y.Z tag on it, and the project's release workflow turns
 # the tag into a GitHub Release.
 #
-#   release.sh patch|minor|major     the next version after the newest stable tag
-#   release.sh 1.4.0                 exactly this version
-#   release.sh minor --rc            a release candidate, v1.5.0-rc.1, then -rc.2 on the next run
+#   herald release patch|minor|major    the next version after the newest stable tag
+#   herald release 1.4.0                exactly this version
+#   herald release minor --rc           a release candidate, v1.5.0-rc.1, then -rc.2 on the next run
 #
 # Run it from a clean default branch that matches origin. If the project has an executable .github/bump-version, it's
 # run with the version (no "v") to write it into the project's own files (Cargo.toml, plugin.toml...). When that
@@ -13,7 +13,7 @@
 # through one; once it's merged, pull and run the same command again to tag it. Nothing is pushed until you say yes.
 set -euo pipefail
 
-die() { echo "release.sh: $*" >&2; exit 1; }
+die() { echo "herald release: $*" >&2; exit 1; }
 usage() { sed -n '6,8s/^# //p' "$0" >&2; exit 2; }
 ask() { local answer; read -r -p "$1 [y/N] " answer; [[ $answer == [yY]* ]]; }
 
@@ -71,8 +71,8 @@ if [[ -n $(git status --porcelain) ]]; then
   if ask "Push $pr and open its pull request?"; then
     git push --quiet -u origin "$pr"
     gh pr create --base "$branch" --head "$pr" --title "Release $tag" \
-      --body "Sets the version to $version. Once this is merged, pull $branch and run \`release.sh $*\` again to tag it."
-    echo "Merge it, then pull $branch and run release.sh $* again to tag $tag."
+      --body "Sets the version to $version. Once this is merged, pull $branch and run \`herald release $*\` again to tag it."
+    echo "Merge it, then pull $branch and run herald release $* again to tag $tag."
   else
     echo "Not pushed. To undo: git branch -D $pr"
   fi

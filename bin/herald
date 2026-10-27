@@ -1,0 +1,24 @@
+#!/bin/bash
+# herald: releases and updates for Edward's projects. Link it onto PATH (ln -s ~/ClaudeCode/herald/bin/herald
+# ~/.local/bin/herald) and run it from inside a project.
+#
+#   herald release patch|minor|major|X.Y.Z [--rc]   tag a release (see lib/release.sh)
+#   herald adopt build|source [--force]             give a project the release workflow (see lib/adopt.sh)
+set -euo pipefail
+
+root=$(dirname "$(dirname "$(readlink -f "$0")")")
+command=${1:-help}
+case $command in
+  release | adopt)
+    shift
+    exec "$root/lib/$command.sh" "$@"
+    ;;
+  help | -h | --help)
+    sed -n '5,6s/^# //p' "$0"
+    ;;
+  *)
+    echo "herald: no command $command" >&2
+    sed -n '5,6s/^# //p' "$0" >&2
+    exit 2
+    ;;
+esac

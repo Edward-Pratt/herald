@@ -1,34 +1,52 @@
-# update-server
+# herald
 
-How Edward's projects ship updates. Despite the name there's no server: GitHub Releases is the update source (see
-[RESEARCH.md](RESEARCH.md) for why).
+Releases and updates for Edward's projects. A project's default branch is its dev channel, a `vX.Y.Z` tag is a stable
+release, and GitHub Releases is where updates come from: there's no update server. [docs/decisions.md](docs/decisions.md)
+says why.
 
-## Branches and channels
+## Setup
 
-- `main` is the dev branch. Everything merges there, and dev channels (`burrow-git`, burrow's `build-main`) follow it.
-- A stable release is a `vX.Y.Z` tag on main. Each one becomes a GitHub Release, and the newest is
-  `releases/latest`, the stable channel.
-- `vX.Y.Z-rc.N` tags are release candidates: pre-releases, which `releases/latest` skips.
-- To fix an old version, branch `release/X.Y` from its tag, fix it there, and tag `vX.Y.(Z+1)` on that branch.
+```sh
+ln -s ~/ClaudeCode/herald/bin/herald ~/.local/bin/herald
+```
 
 ## Releasing a project
 
-From a clean `main` of the project:
+From the project's default branch, clean and up to date:
 
 ```sh
-~/ClaudeCode/update-server/scripts/release.sh patch   # or minor, major, 1.4.0; add --rc for a candidate
+herald release minor        # or patch, major, or 1.4.0
+herald release minor --rc   # a release candidate (a pre-release), v1.5.0-rc.1, then rc.2
 ```
 
-It picks the version and runs the project's `.github/bump-version <version>` if there is one (to update `Cargo.toml`,
-`plugin.toml` and so on). If that changes anything, it opens a `release/vX.Y.Z` pull request with the change, because
-default branches only take changes through pull requests. Merge it once CI passes, pull, and run the same command again:
-with nothing left to change, it tags and pushes the tag. It asks before pushing anything.
+It works out the version from the project's tags. If the project has an executable `.github/bump-version`, it runs it
+with the version to write it into the project's files (`Cargo.toml`, `plugin.toml`...). When that changes anything,
+herald opens a `release/vX.Y.Z` pull request; merge it once CI passes, pull, and run the same command again to tag.
+It asks before pushing anything.
 
-## Adding a project
+## Adopting a project
 
-Copy [templates/release.yml](templates/release.yml) to the project's `.github/workflows/release.yml` and put its
-build in the `build` job. The shared [workflow](.github/workflows/release.yml) checks the tag, adds `SHA256SUMS` and
-notes from the commits since the last release, and publishes. Projects call it at `@v1`, a tag in this repo that
-moves only for compatible changes.
+```sh
+herald adopt build    # the project builds what users download: fill in the template's build job
+herald adopt source   # the project ships its source; releases carry a source archive
+```
 
-Public repos can only call workflows in public repos, so this repo has to be public for them to use it.
+That writes `.github/workflows/release.yml`, which calls the [shared workflow](.github/workflows/release.yml) at
+`@v1`. On each tag it checks the tag, writes `SHA256SUMS` and notes from the commits since the last release, and
+publishes the release. Add `.github/bump-version` if the version lives in a file (see burrow's or claude-operator's).
+
+## Layout
+
+| Path | What |
+|---|---|
+| `bin/herald` | The command |
+| `lib/release.sh`, `lib/adopt.sh` | Its subcommands |
+| `.github/workflows/release.yml` | The shared release workflow projects call |
+| `templates/` | The project workflows `herald adopt` writes |
+| `test/` | Tests, run by CI: `test/run` |
+| `docs/decisions.md` | Why it works this way |
+
+## Versions
+
+Projects call the shared workflow at `v1`. Each change gets a fixed `v1.x.y` tag, and `v1` moves to the newest
+compatible one; a breaking change would start `v2`. See [CHANGELOG.md](CHANGELOG.md).

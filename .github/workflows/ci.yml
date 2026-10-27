@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Shellcheck
+        run: shellcheck -x bin/herald lib/*.sh test/*.sh test/run
+
+      # Lints every workflow, including the shell in their run steps.
+      - name: Actionlint
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+      - name: Tests
+        run: |
+          sudo apt-get install -y --no-install-recommends python3-yaml >/dev/null
+          test/run
