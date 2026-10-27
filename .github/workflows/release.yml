@@ -44,11 +44,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Outside the checkout, which may have its own dist/ or release/ folder.
+      - name: Folder for the release's files
+        run: |
+          echo "FILES=$RUNNER_TEMP/release-files" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/release-files"
+
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: inputs.artifact != ''
         with:
           name: ${{ inputs.artifact }}
-          path: dist
+          path: ${{ env.FILES }}
 
       - name: Source archive
         if: inputs.artifact == ''
@@ -57,11 +63,10 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          mkdir -p dist
-          git archive --format=tar.gz --prefix="$NAME-$VERSION/" -o "dist/$NAME-$VERSION.tar.gz" "$TAG"
+          git archive --format=tar.gz --prefix="$NAME-$VERSION/" -o "$FILES/$NAME-$VERSION.tar.gz" "$TAG"
 
       - name: Checksums
-        working-directory: dist
+        working-directory: ${{ env.FILES }}
         run: |
           [[ -n $(ls -A) ]] || { echo "::error::Nothing to publish"; exit 1; }
           [[ ! -e SHA256SUMS ]] || { echo "::error::The artifact brings its own SHA256SUMS; leave that to this workflow"; exit 1; }
@@ -98,4 +103,4 @@ jobs:
         run: |
           flags=(--latest)
           [[ $PRERELEASE == false ]] || flags=(--prerelease --latest=false)
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" dist/*
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" "$FILES"/*
