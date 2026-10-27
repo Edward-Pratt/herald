@@ -2,6 +2,13 @@
 
 `v1` points at the newest `v1.x.y`.
 
+## v1.2.0
+
+- herald's updater, `templates/updater/`: `<name>-update` follows stable releases, checks SHA256SUMS, installs through
+  the project's install script, keeps the previous release for `--rollback`, and a daily timer only notifies.
+- `herald adopt updater`, and docs/ADOPTING.md, the checklist for adopting a project.
+- The shared workflow is unchanged.
+
 ## v1.1.0
 
 - Renamed from update-server to herald. Projects call `Edward-Pratt/herald/.github/workflows/release.yml@v1`.

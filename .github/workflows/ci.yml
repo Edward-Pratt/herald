@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
 
       - name: Shellcheck
-        run: shellcheck -x bin/herald lib/*.sh test/*.sh test/run
+        run: shellcheck -x bin/herald lib/*.sh test/*.sh test/run templates/updater/update.sh
 
       # Lints every workflow, including the shell in their run steps.
       - name: Actionlint

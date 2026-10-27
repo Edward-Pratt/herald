@@ -29,11 +29,20 @@ It asks before pushing anything.
 ```sh
 herald adopt build    # the project builds what users download: fill in the template's build job
 herald adopt source   # the project ships its source; releases carry a source archive
+herald adopt updater  # <name>-update and its daily check, for programs installed into ~/.local
 ```
 
 That writes `.github/workflows/release.yml`, which calls the [shared workflow](.github/workflows/release.yml) at
 `@v1`. On each tag it checks the tag, writes `SHA256SUMS` and notes from the commits since the last release, and
 publishes the release. Add `.github/bump-version` if the version lives in a file (see burrow's or claude-operator's).
+[docs/ADOPTING.md](docs/ADOPTING.md) is the whole checklist, including the updater.
+
+## Updates
+
+Each program follows its stable releases through the channel it already lives in: burrow through `burrow-update`,
+claude-operator through Noctalia's catalog, and programs installed into `~/.local` through herald's updater
+(`templates/updater/`). A daily check says on the desktop when a release is ready; installing is a deliberate
+`<name>-update`, and `<name>-update --rollback` goes back.
 
 ## Layout
 
@@ -42,9 +51,10 @@ publishes the release. Add `.github/bump-version` if the version lives in a file
 | `bin/herald` | The command |
 | `lib/release.sh`, `lib/adopt.sh` | Its subcommands |
 | `.github/workflows/release.yml` | The shared release workflow projects call |
-| `templates/` | The project workflows `herald adopt` writes |
+| `templates/` | What `herald adopt` writes: release workflows, and the updater with its timer |
 | `test/` | Tests, run by CI: `test/run` |
 | `docs/decisions.md` | Why it works this way |
+| `docs/ADOPTING.md` | Everything a project needs |
 
 ## Versions
 
