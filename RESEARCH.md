@@ -28,7 +28,7 @@ The brief's language list needs correcting. The Noctalia plugins are **Luau**, n
 | Program | What it is | Installs / updates today | Recommended channel | Effort |
 |---|---|---|---|---|
 | `claude-operator` | Noctalia plugin (Luau) | `path` source from a clone, so no updates until you `git pull`. Submitted to the community catalog in noctalia-dev/community-plugins#1176. | **Community catalog** once #1176 merges: Noctalia auto-updates it. Until then, add the repo as a **`git` source** (see note 1). | None / tiny |
-| `community-plugins` | Edward's fork of noctalia-dev/community-plugins, used to send PRs | Not something users install. Edward has no plugin in it yet. | Nothing to do: it's the publishing route for claude-operator. | None |
+| `community-plugins` | Edward's fork of noctalia-dev/community-plugins, used to send PRs | Not something users install. Its `claude-operator` branch carries the copy that feeds PR #1176. | Nothing to do: it's the publishing route for claude-operator. | None |
 | `burrow` | GTK4 app (Rust) + daemon, agent, CLI | `burrow-git` PKGBUILD builds `main`. CI publishes a rolling `build-main` release (`burrow-x86_64.tar.gz`, `SHA256SUMS`, `commit`). | **Keep AUR/pacman** (a tagged `burrow` package next to `burrow-git` when releases start). A self-updater would reverse DESIGN.md, so that's a question for you. | Small |
 | burrow addons (M5) | Sidecar processes, any language | Not built yet. A changed addon re-asks for approval. | Later: an addon index that *offers* updates, with approval re-prompting as designed. Not silent. | Future |
 | `orrery` | Hub (Node/TS), dashboard, Forge 1.7.10 mod | Hub polls `api.github.com/.../releases`. You pick a deploy (Discord/dashboard). A systemd oneshot runs `deploy-hub.sh` **from the running release**, health-gates for 30 s, flips `current`, rolls back on failure, keeps 3 releases and writes `deploy-status.json`. | **Already done.** Use it as the reference pattern. One gap: it doesn't check asset checksums. | Tiny |
@@ -38,12 +38,14 @@ The brief's language list needs correcting. The Noctalia plugins are **Luau**, n
 
 **Note 1, Noctalia `git` source.** `noctalia msg plugins source add edward git https://github.com/Edward-Pratt/claude-operator`.
 The docs *recommend* a root `catalog.toml` and don't say one is required. They also don't document pinning a branch.
-So claude-operator likely needs a generated `catalog.toml` (Noctalia's `update-catalog.py`) before this works. I'd
-test it on warren before relying on it. This is moot once #1176 merges.
+So claude-operator likely needs a generated `catalog.toml` (Noctalia's `update-catalog.py`) before this works. Test it
+on the desktop: warren runs noctalia 5.3.0, and claude-operator needs `plugin_api = 43` (5.4), so it won't load
+there until warren is updated. This is moot once #1176 merges.
 
-**Note 2, OpenComputers limits.** OC's Internet Card can do HTTPS (the JVM does TLS). A Tier 1 Data Card has
-`data.sha256`, so checksum checks are realistic. Signature checks are not, unless the computer has a **Tier 3 Data
-Card** (ECDSA only, so no minisign/ed25519). Auto-update also means leaving the Internet Card in.
+**Note 2, OpenComputers limits.** `installer.lua` already fetches over `https://`. A Tier 1 Data Card has
+`data.sha256` ([OC docs](https://ocdoc.cil.li/component:data)). Without one, a pure-Lua sha256 works, just slowly. So
+checksum checks are realistic. Signature checks are not, unless the computer has a **Tier 3 Data Card**, and that
+offers EC `ecdsa` only, so no minisign/ed25519. Auto-update also means leaving the Internet Card in.
 
 ## Is a self-hosted server worth it?
 
@@ -69,22 +71,23 @@ free, no uptime to manage). Moving that folder onto Oracle later only changes DN
 
 Updates are code execution on your machines. In order of value:
 
-1. **HTTPS only.** Every channel above already is, except a `wget` without a scheme. Make Level-Maintainer's URL
-   explicitly `https://`.
+1. **HTTPS only.** Every channel above already is. The exception is Level-Maintainer's README bootstrap command
+   (`wget raw.githubusercontent.com/...`), which has no scheme. Make it `https://`.
 2. **Checksums from a separate source.** sha256 in the manifest or a `SHA256SUMS` file, checked before installing.
    burrow already publishes one. orrery should check its jar and dashboard tarballs against one too. On its own, a
    checksum only catches corruption, because whoever can replace the file can usually replace the sum.
 3. **Signing, where the runtime can verify it.** Use **minisign** (ed25519): `minisign -S` in CI, with the secret key
    as a GitHub Actions secret and the public key baked into each client. That keeps a hacked server or mirror from
-   pushing code. It fits burrow (Rust: `minisign-verify` crate) and orrery (Node: `crypto.verify` with ed25519).
+   pushing code. It fits burrow (Rust: `minisign-verify` crate) and orrery (Node: a minisign verify library).
    It doesn't fit OC (no ed25519) or Noctalia (git source, no hook). Keep a second offline key on the desktop to
    rotate to if the CI key leaks.
 4. **Rollback.** Copy orrery's pattern: install next to the old version, switch a `current` symlink, health-check,
    and switch back on failure. Keep the last N versions. pacman gives burrow/autocopy this via `downgrade` or the
-   package cache. Noctalia keeps the old exported copy when a new one needs a newer `plugin_api`, but not on runtime
-   errors.
-5. **Staged rollout.** orrery's `newerAfterDays` (a new release waits before it's pushed) is a cheap guard against a
-   bad release. Worth copying anywhere updates are automatic.
+   package cache. Noctalia keeps the old exported copy when a new one needs a newer `plugin_api`. The docs don't
+   describe a rollback for any other kind of failure.
+5. **Staged rollout.** Holding a new release for a day or two before clients take it is a cheap guard against a bad
+   release. It's worth adding anywhere updates are automatic. (orrery's `newerAfterDays` is different: it only flags
+   a newer release that has waited too long.)
 
 ## Client side: a shared pattern
 
