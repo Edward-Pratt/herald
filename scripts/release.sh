@@ -1,18 +1,19 @@
 #!/bin/bash
-# Tags a stable release (or a release candidate) of the project in the current folder. main is the dev branch; a
-# release is a vX.Y.Z tag on it, and the project's release workflow turns the tag into a GitHub Release.
+# Tags a stable release (or a release candidate) of the project in the current folder. The default branch (main, or
+# master in older repos) is the dev branch; a release is a vX.Y.Z tag on it, and the project's release workflow turns
+# the tag into a GitHub Release.
 #
 #   release.sh patch|minor|major     the next version after the newest stable tag
 #   release.sh 1.4.0                 exactly this version
 #   release.sh minor --rc            a release candidate, v1.5.0-rc.1, then -rc.2 on the next run
 #
-# Run it from a clean main that matches origin/main. If the project has an executable .github/bump-version, it's run
-# with the version (no "v") to write it into the project's own files (Cargo.toml, plugin.toml...), and the result is
-# committed as "Release vX.Y.Z". Nothing is pushed until you say yes.
+# Run it from a clean default branch that matches origin. If the project has an executable .github/bump-version, it's
+# run with the version (no "v") to write it into the project's own files (Cargo.toml, plugin.toml...), and the result
+# is committed as "Release vX.Y.Z". Nothing is pushed until you say yes.
 set -euo pipefail
 
 die() { echo "release.sh: $*" >&2; exit 1; }
-usage() { sed -n '5,7s/^# //p' "$0" >&2; exit 2; }
+usage() { sed -n '6,8s/^# //p' "$0" >&2; exit 2; }
 
 [[ $# -ge 1 && $# -le 2 ]] || usage
 bump=$1 rc=
@@ -20,10 +21,12 @@ if [[ $# -eq 2 ]]; then [[ $2 == --rc ]] || usage; rc=1; fi
 
 git rev-parse --show-toplevel >/dev/null 2>&1 || die "not in a git repository"
 cd "$(git rev-parse --show-toplevel)"
-[[ $(git branch --show-current) == main ]] || die "releases are tagged on main; this is $(git branch --show-current)"
+branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
+branch=${branch#origin/}
+[[ $(git branch --show-current) == "$branch" ]] || die "releases are tagged on $branch; this is $(git branch --show-current)"
 [[ -z $(git status --porcelain) ]] || die "the working tree has changes; commit or stash them first"
-git fetch --quiet --tags origin main
-[[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]] || die "main and origin/main differ; pull or push first"
+git fetch --quiet --tags origin "$branch"
+[[ $(git rev-parse HEAD) == $(git rev-parse "origin/$branch") ]] || die "$branch and origin/$branch differ; pull or push first"
 
 semver='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
 # The newest stable tag; release candidates don't count as a base.
@@ -63,9 +66,10 @@ echo
 echo "Tagged $tag (previous stable release: v$latest):"
 git log --oneline "$(git rev-parse -q --verify "refs/tags/v$latest" >/dev/null && echo "v$latest..")$tag" | head -n 30
 echo
-read -r -p "Push main and $tag to origin? [y/N] " answer
+read -r -p "Push $branch and $tag to origin? [y/N] " answer
 if [[ $answer == [yY]* ]]; then
-  git push --quiet origin main "$tag"
+  # Atomic, so the tag never lands without the commit it names.
+  git push --quiet --atomic origin "$branch" "$tag"
   echo "Pushed. The release workflow publishes $tag."
 else
   echo "Not pushed. To undo: git tag -d $tag$(git log -1 --format=%s | grep -qx "Release $tag" && echo ' && git reset --hard HEAD~1')"
