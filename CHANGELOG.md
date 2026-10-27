@@ -2,6 +2,16 @@
 
 `v1` points at the newest `v1.x.y`.
 
+## v1.3.0
+
+- The updater: `--check` with no stable release yet reports `available none` and succeeds, instead of failing (and
+  notifying a failure) every day; a private repo's "release not found" from gh counts as none.
+- The updater: `--record DIR`, which a project's install script runs from a clone, so a clone on a release tag counts
+  as that release.
+- `herald release` asks the remote for its default branch when origin/HEAD isn't set, instead of assuming main.
+- docs/ADOPTING.md: plugins whose manager can't meet the rules, installing to a fixed place, the session an update
+  runs in, programs with their own updater, and committing the test.
+
 ## v1.2.0
 
 - herald's updater, `templates/updater/`: `<name>-update` follows stable releases, checks SHA256SUMS, installs through

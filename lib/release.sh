@@ -23,8 +23,11 @@ if [[ $# -eq 2 ]]; then [[ $2 == --rc ]] || usage; rc=1; fi
 
 git rev-parse --show-toplevel >/dev/null 2>&1 || die "not in a git repository"
 cd "$(git rev-parse --show-toplevel)"
-branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
+# origin/HEAD names the default branch; a clone made without it (or with it removed) asks the remote instead.
+branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null ||
+  git ls-remote --symref origin HEAD | sed -n 's|^ref: refs/heads/\(.*\)\tHEAD$|\1|p')
 branch=${branch#origin/}
+[[ -n $branch ]] || die "can't tell origin's default branch"
 [[ $(git branch --show-current) == "$branch" ]] || die "releases are tagged on $branch; this is $(git branch --show-current)"
 [[ -z $(git status --porcelain) ]] || die "the working tree has changes; commit or stash them first"
 git fetch --quiet --tags origin "$branch"

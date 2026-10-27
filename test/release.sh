@@ -24,6 +24,9 @@ git tag -d v0.0.2 >/dev/null
 project master 40
 echo y | release minor >/dev/null
 check "master is found as the default branch, and a long history doesn't stop the push" test "$(remote_tags)" = "v0.1.0 "
+git remote set-head origin -d
+echo y | release patch >/dev/null
+check "without origin/HEAD, the remote names the default branch" test "$(remote_tags)" = "v0.1.0 v0.1.1 "
 
 project main 1
 mkdir .github

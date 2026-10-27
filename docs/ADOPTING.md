@@ -24,6 +24,10 @@ Pick the channel the program already lives in before writing anything:
 | Is installed into `~/.local` by an install script (shell, Python, systemd units) | herald's updater: `herald adopt updater` |
 | Runs somewhere herald's updater can't (an OpenComputers computer, a server) | Its own small updater, following the same rules below |
 
+A plugin manager that can't follow tags, check what it downloads or notify without installing doesn't meet the rules
+below; then herald's updater installs the plugins too. claude-code-mods is the example: Claude Code's marketplaces
+follow a branch and update by themselves, and its helper scripts need `~/.local/bin` anyway.
+
 herald's updater (`templates/updater/update.sh`) installs as `~/.local/bin/<name>-update`:
 
 - `<name>-update --check` runs daily from `<name>-update.timer` and only notifies: installing is a deliberate step.
@@ -36,13 +40,25 @@ The project's install script is the one place that installs anything, whether ru
 updater from a release. It must:
 
 - install the updater (`updater/<name>-update` to `~/.local/bin/`) and its two units, and enable the timer;
+- run from a clone (`HERALD_VERSION` unset), end with `"$HOME/.local/bin/<name>-update" --record "$PWD"`, so a clone
+  checked out at a release tag counts as that release and the first check doesn't announce what's installed;
+- copy what it installs to a fixed place (`~/.local/lib/<name>`, `~/.local/share/<name>/...`), never link into the
+  release folder it runs from: the updater keeps only the two newest releases;
 - replace files with `install` or write-then-rename, never by overwriting in place (the updater may be the file it's
   replacing, and bash reads a script as it runs);
 - work from any folder it's run from, and be safe to run twice.
 
+The updater runs the install script in the environment `<name>-update` was run in. A script that checks the desktop
+session (autocopy's checks for Wayland) can then only update from inside that session; say so in the README.
+
 Every updater, herald's or a program's own, keeps these rules: HTTPS only, check the release's SHA256SUMS before
 installing, follow only stable `vX.Y.Z` releases, keep the previous version to go back to, never install from the
 timer.
+
+A program's own updater gives its daily notice however the program can reach its user: Level-Maintainer logs a line
+once a day of uptime when a newer release exists. Prove it with a harness that stubs the platform (Level-Maintainer's
+`test/installer.lua` stubs OpenComputers' APIs), covering the same cases as step 4, and say plainly what still needs
+testing on the real platform.
 
 ## 3. Docs
 
@@ -55,7 +71,9 @@ release (`herald release minor`, with `--rc` for a pre-release).
 - The updater works against fake releases in a throwaway HOME (see `test/updater.sh`, `HERALD_BASE=file://...` and
   `HERALD_LATEST`): a fresh install through the real install script, up to date, a newer release, rollback, and a
   tampered download refused with the old install kept. Never against the real HOME, the real timer or real services:
-  stub `systemctl` and `notify-send` on PATH.
+  stub `systemctl` and `notify-send` on PATH, and a `gh` that fails loudly, so a private repo's test can't reach the
+  real one.
+- Commit the test, and run it in CI if the project has any.
 - Open a PR in the project's format. Don't merge it, and don't tag anything: after the merge, the first
   `herald release X.Y.Z --rc` exercises the release workflow.
 

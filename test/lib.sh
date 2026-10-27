@@ -7,7 +7,16 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/bin"
 # herald release opens pull requests with gh; the stub only records the call.
-printf '#!/bin/sh\necho "gh $*" >> "%s/gh.log"\n' "$scratch" > "$scratch/bin/gh"
+# With GH_RELEASE_VIEW set it answers `gh release view` with that text: a tag succeeds, anything else
+# ("release not found", "HTTP 401") fails, as gh does.
+cat > "$scratch/bin/gh" <<GH
+#!/bin/sh
+echo "gh \$*" >> "$scratch/gh.log"
+if [ "\$1 \$2" = "release view" ] && [ -n "\$GH_RELEASE_VIEW" ]; then
+  echo "\$GH_RELEASE_VIEW"
+  case \$GH_RELEASE_VIEW in v*) exit 0 ;; *) exit 1 ;; esac
+fi
+GH
 chmod +x "$scratch/bin/gh"
 export PATH=$scratch/bin:$PATH
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
