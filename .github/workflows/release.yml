@@ -34,9 +34,11 @@ jobs:
         run: |
           [[ $REF =~ ^refs/tags/v([0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?)$ ]] ||
             { echo "::error::Not a vX.Y.Z or vX.Y.Z-rc.N tag: $REF"; exit 1; }
-          echo "tag=${REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$([[ -n ${BASH_REMATCH[2]} ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${REF#refs/tags/}"
+            echo "version=${BASH_REMATCH[1]}"
+            echo "prerelease=$([[ -n ${BASH_REMATCH[2]} ]] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
 
       # Full history and tags, for the notes. The write token stays out of the checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
