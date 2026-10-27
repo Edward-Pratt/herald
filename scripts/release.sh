@@ -66,7 +66,7 @@ if [[ -n $(git status --porcelain) ]]; then
   git commit --quiet -m "Release $tag" -m "Sets the version to $version. Once this is merged, the release is tagged on $branch."
   git switch --quiet "$branch"
   echo
-  git show --stat --format='%s' "$pr" | head -n 20
+  git show --stat --format=%s "$pr"
   echo
   if ask "Push $pr and open its pull request?"; then
     git push --quiet -u origin "$pr"
@@ -82,7 +82,7 @@ fi
 git tag -a "$tag" -m "$tag"
 echo
 echo "Tagged $tag (previous stable release: v$latest):"
-git log --oneline "$(git rev-parse -q --verify "refs/tags/v$latest" >/dev/null && echo "v$latest..")$tag" | head -n 30
+git log --oneline -n 30 "$(git rev-parse -q --verify "refs/tags/v$latest" >/dev/null && echo "v$latest..")$tag"
 echo
 if ask "Push $tag to origin?"; then
   git push --quiet origin "$tag"
