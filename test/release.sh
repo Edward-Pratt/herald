@@ -21,6 +21,15 @@ echo n | release patch >/dev/null
 check "declining keeps the tag local" test "$(remote_tags)" = "v0.0.1 v0.1.0-rc.1 v0.1.0-rc.2 "
 git tag -d v0.0.2 >/dev/null
 
+# A tag CI moves to each build, as a project's build-main is: origin has it on a newer commit than this clone.
+project main 1
+git -c tag.gpgSign=false tag build-main && git push -q origin build-main
+git commit -q --allow-empty -m "commit 2" && git push -q origin main
+(cd ../origin.git && git update-ref refs/tags/build-main refs/heads/main)
+echo y | release patch >/dev/null
+check "a tag CI moved doesn't stop the release" test "$(remote_tags)" = "build-main v0.0.1 "
+check "and the clone has origin's copy of it" test "$(git rev-parse build-main)" = "$(git rev-parse origin/main)"
+
 project master 40
 echo y | release minor >/dev/null
 check "master is found as the default branch, and a long history doesn't stop the push" test "$(remote_tags)" = "v0.1.0 "

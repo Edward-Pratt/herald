@@ -30,7 +30,9 @@ branch=${branch#origin/}
 [[ -n $branch ]] || die "can't tell origin's default branch"
 [[ $(git branch --show-current) == "$branch" ]] || die "releases are tagged on $branch; this is $(git branch --show-current)"
 [[ -z $(git status --porcelain) ]] || die "the working tree has changes; commit or stash them first"
-git fetch --quiet --tags origin "$branch"
+# --force, since a project's CI may move a tag of its own to each build (burrow's build-main), and git won't update
+# a tag it has without it. A copy of the tag older than origin's would otherwise stop the fetch, silently with --quiet.
+git fetch --quiet --force --tags origin "$branch"
 [[ $(git rev-parse HEAD) == $(git rev-parse "origin/$branch") ]] || die "$branch and origin/$branch differ; pull or push first"
 
 semver='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
