@@ -2,6 +2,11 @@
 
 `v1` points at the newest `v1.x.y`.
 
+## Unreleased
+
+- `herald release` takes origin's copy of a tag the project's CI moves to each build, such as burrow's `build-main`.
+  An older copy in the clone stopped the release at its first step, without a word.
+
 ## v1.3.0
 
 - The updater: `--check` with no stable release yet reports `available none` and succeeds, instead of failing (and
